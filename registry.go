@@ -71,7 +71,6 @@ func (r *Registry) PeriodicCheck(name string, tags []string) error {
 		if len(s) > 0 {
 			services[tag] = s[0]
 		}
-
 	}
 
 	r.block = true
@@ -93,5 +92,14 @@ func (r *Registry) PeriodicCheck(name string, tags []string) error {
 	}
 
 	r.log.Print("PeriodicCheck refresh the registry, tags currently: ", strings.Join(tagsLog, ", "))
+	return nil
+}
+
+func (r *Registry) Close() error {
+	for _, conn := range r.conns {
+		if err := conn.Close(); err != nil {
+			return err
+		}
+	}
 	return nil
 }
