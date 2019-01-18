@@ -49,22 +49,8 @@ func (r *Registry) SetCredentials(creds credentials.TransportCredentials) {
 	r.creds = creds
 }
 
-/*func (r *Registry) Add(tag string, id string, c *grpc.ClientConn) error {
-	if _, ok := r.conns[tag][id]; ok && r.conns[tag][id].health {
-		return errors.New("client exists and healthy")
-	}
-
-	r.conns[tag][id] = client{
-		client: c,
-		health: true,
-	}
-
-	return nil
-}*/
-
 func (r *Registry) Get(tag string) (*grpc.ClientConn, error) {
 	for r.block {
-		fmt.Println("wait")
 		time.Sleep(10 * time.Millisecond)
 	}
 
