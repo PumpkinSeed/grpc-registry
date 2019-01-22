@@ -45,6 +45,14 @@ func New(c *consul.Config, log logger) (*Registry, error) {
 	}, nil
 }
 
+func (r *Registry) Available() []string {
+	var result []string
+	for tag := range r.conns {
+		result = append(result, tag)
+	}
+	return result
+}
+
 func (r *Registry) SetCredentials(creds credentials.TransportCredentials) {
 	r.creds = creds
 }
