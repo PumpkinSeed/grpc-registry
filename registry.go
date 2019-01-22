@@ -80,7 +80,13 @@ func (r *Registry) PeriodicCheck(name string, tags []string) error {
 	var tagsLog []string
 	for tag, service := range services {
 		target := fmt.Sprintf("%s:%d", service.Service.Address, service.Service.Port)
-		conn, err := grpc.Dial(target, grpc.WithTransportCredentials(r.creds))
+		var conn *grpc.ClientConn
+		var err error
+		if r.creds == nil {
+			conn, err = grpc.Dial(target, grpc.WithInsecure())
+		} else {
+			conn, err = grpc.Dial(target, grpc.WithTransportCredentials(r.creds))
+		}
 		if err != nil {
 			return err
 		}
