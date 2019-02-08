@@ -13,7 +13,7 @@ import (
 )
 
 type logger interface {
-	Print(string, ...interface{})
+	Printf(string, ...interface{})
 }
 
 type Registry struct {
