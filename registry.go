@@ -106,7 +106,7 @@ func (r *Registry) PeriodicCheck(name string, tags []string) error {
 	}
 
 	if r.log != nil {
-		r.log.Print("PeriodicCheck refresh the registry, tags currently: ", strings.Join(tagsLog, ", "))
+		r.log.Printf("PeriodicCheck refresh the registry, tags currently: ", strings.Join(tagsLog, ", "))
 	}
 	return nil
 }
