@@ -13,7 +13,7 @@ import (
 )
 
 type logger interface {
-	Print(v ...interface{})
+	Print(string, ...interface{})
 }
 
 type Registry struct {
@@ -105,7 +105,9 @@ func (r *Registry) PeriodicCheck(name string, tags []string) error {
 		tagsLog = append(tagsLog, tag)
 	}
 
-	r.log.Print("PeriodicCheck refresh the registry, tags currently: ", strings.Join(tagsLog, ", "))
+	if r.log != nil {
+		r.log.Print("PeriodicCheck refresh the registry, tags currently: ", strings.Join(tagsLog, ", "))
+	}
 	return nil
 }
 
