@@ -44,6 +44,7 @@ func New(c *consul.Config, log logger) (*Registry, error) {
 		block:        false,
 		mut:          new(sync.Mutex),
 		log:          log,
+		available:    true,
 	}
 	if !reg.HealthCheck() {
 		reg.available = false
