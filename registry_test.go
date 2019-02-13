@@ -102,16 +102,20 @@ func register(t *testing.T) {
 type l struct {
 }
 
-func (l) Print(v ...interface{}) {
-	log.Print(v...)
+func (l) Printf(s string, args ...interface{}) {
+	log.Printf(s, args...)
 }
 
 func TestRegistryOn(t *testing.T) {
-	register(t)
+	//register(t)
 
 	conf := consul.DefaultConfig()
 	conf.Address = "localhost:8500"
 	registry, err := New(conf, l{})
+	if err == ErrConsulNotAvailable {
+		t.Log(err)
+		return
+	}
 	if err != nil {
 		t.Error(err)
 		return

@@ -3,6 +3,7 @@ package registry
 import (
 	"errors"
 	"fmt"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -12,15 +13,21 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+var ErrConsulNotAvailable = errors.New("consul not available")
+
+const heatlhCheckTimeout = 500
+
 type logger interface {
 	Printf(string, ...interface{})
 }
 
 type Registry struct {
-	conns  map[string]*grpc.ClientConn
-	consul *consul.Client
-	block  bool
-	log    logger
+	conns        map[string]*grpc.ClientConn
+	consul       *consul.Client
+	consulConfig *consul.Config
+	block        bool
+	log          logger
+	available    bool
 
 	creds credentials.TransportCredentials
 	mut   *sync.Mutex
@@ -31,22 +38,33 @@ type Config struct {
 }
 
 func New(c *consul.Config, log logger) (*Registry, error) {
+	reg := &Registry{
+		consulConfig: c,
+		conns:        make(map[string]*grpc.ClientConn),
+		block:        false,
+		mut:          new(sync.Mutex),
+		log:          log,
+	}
+	if !reg.HealthCheck() {
+		reg.available = false
+		return reg, ErrConsulNotAvailable
+	}
+
 	cc, err := consul.NewClient(c)
 	if err != nil {
 		return nil, err
 	}
+	reg.consul = cc
 
-	return &Registry{
-		consul: cc,
-		conns:  make(map[string]*grpc.ClientConn),
-		block:  false,
-		mut:    new(sync.Mutex),
-		log:    log,
-	}, nil
+	return reg, nil
 }
 
 func (r *Registry) Available() []string {
 	var result []string
+	if !r.available {
+		return result
+	}
+
 	for tag := range r.conns {
 		result = append(result, tag)
 	}
@@ -62,14 +80,28 @@ func (r *Registry) Get(tag string) (*grpc.ClientConn, error) {
 		time.Sleep(10 * time.Millisecond)
 	}
 
-	if _, ok := r.conns[tag]; !ok {
-		return nil, errors.New("invalid tag")
+	if value, ok := r.conns[tag]; !ok || value == nil {
+		return nil, errors.New("invalid tag, requested service not available")
 	}
 
 	return r.conns[tag], nil
 }
 
+func (r *Registry) HealthCheck() bool {
+	conn, err := net.DialTimeout("tcp", r.consulConfig.Address, time.Duration(heatlhCheckTimeout)*time.Millisecond)
+	if err != nil || conn == nil {
+		return false
+	}
+	defer conn.Close()
+	return true
+}
+
 func (r *Registry) PeriodicCheck(name string, tags []string) error {
+	if r.HealthCheck() {
+		r.available = false
+		return ErrConsulNotAvailable
+	}
+
 	var services = make(map[string]*consul.ServiceEntry)
 	for _, tag := range tags {
 		s, _, err := r.consul.Health().Service(name, tag, true, nil)
@@ -113,8 +145,10 @@ func (r *Registry) PeriodicCheck(name string, tags []string) error {
 
 func (r *Registry) Close() error {
 	for _, conn := range r.conns {
-		if err := conn.Close(); err != nil {
-			return err
+		if conn != nil {
+			if err := conn.Close(); err != nil {
+				return err
+			}
 		}
 	}
 	return nil
