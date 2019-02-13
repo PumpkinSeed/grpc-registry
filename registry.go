@@ -97,7 +97,7 @@ func (r *Registry) HealthCheck() bool {
 }
 
 func (r *Registry) PeriodicCheck(name string, tags []string) error {
-	if r.HealthCheck() {
+	if !r.HealthCheck() {
 		r.available = false
 		return ErrConsulNotAvailable
 	}
