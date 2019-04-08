@@ -97,20 +97,23 @@ func (r *Registry) HealthCheck() bool {
 	return true
 }
 
-func (r *Registry) PeriodicCheck(name string, tags []string) error {
+func (r *Registry) PeriodicCheck(groups []string, tag string) error {
 	if !r.HealthCheck() {
 		r.available = false
 		return ErrConsulNotAvailable
 	}
 
 	var services = make(map[string]*consul.ServiceEntry)
-	for _, tag := range tags {
-		s, _, err := r.consul.Health().Service(name, tag, true, nil)
+	for _, group := range groups {
+		s, _, err := r.consul.Health().Service(group, tag, true, nil)
 		if err != nil {
 			return err
 		}
 		if len(s) > 0 {
-			services[tag] = s[0]
+			data := strings.Split(group, ":")
+			if len(data) > 1 {
+				services[data[1]] = s[0]
+			}
 		}
 	}
 
